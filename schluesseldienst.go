@@ -50,14 +50,15 @@ type Password struct {
 type Criteria struct {
     DesiredLength int
     MinWords int
+    MaxWords int
 }
 
 func (p Password) Satisfies(c Criteria) bool {
-    return len(p.Data) == c.DesiredLength && p.NWords >= c.MinWords
+    return len(p.Data) == c.DesiredLength && p.NWords >= c.MinWords && p.NWords <= c.MaxWords
 }
 
 func (p Password) StillTooShort(c Criteria) bool {
-    return len(p.Data) < c.DesiredLength
+    return len(p.Data) < c.DesiredLength && p.NWords < c.MaxWords
 }
 
 func (p Password) String() string {
@@ -91,7 +92,7 @@ func main() {
 
     flag.BoolVar(&enableSymbols, "symbols", true, "include symbol characters (default true)")
     flag.IntVar(&criteria.MinWords, "minwords", 2, "min. number of words (default 2)")
-    flag.IntVar(&criteria.MinWords, "maxwords", 200, "max. number of words (default 200)")
+    flag.IntVar(&criteria.MaxWords, "maxwords", 200, "max. number of words (default 200)")
     flag.IntVar(&maxTries, "maxtries", 10000, "max. tries after which to give up password generation")
 
     flag.Parse()
