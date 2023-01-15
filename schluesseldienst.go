@@ -46,6 +46,7 @@ func main() {
     desired_length := 16  // Default
 
     enableSymbols := flag.Bool("symbols", true, "include symbol characters (default true)")
+
     flag.Parse()
 
     fmt.Println(*enableSymbols);
@@ -64,11 +65,19 @@ func main() {
         }
         
     }
+
+    wordChannel := make(chan string)
+
+    for i := 0; i < 100; i++ {
+        go func() {
+            wordChannel <- GenerateWord()
+        }()
+    }
     
     password := ""
     next_word := ""
     for len(password) < desired_length {
-        next_word = GenerateWord()
+        next_word = <-wordChannel
         if len(password) + len(next_word) < desired_length + 5 {  // Check if we dont overshoot too much
             password = password + next_word + GenerateSpecialChar(*enableSymbols)    
         }
