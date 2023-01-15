@@ -4,9 +4,9 @@ import (
     "fmt"
     "crypto/rand"
     "math/big"
-    "os"
     "strconv"
     "strings"
+    "flag"
 )
 
 func RandInt(length int) int64 {
@@ -19,8 +19,15 @@ func RandInt(length int) int64 {
 }
 
 
-func GenerateSpecialChar() string {
-    chars := []string{"!", "$", "%", "#", "-", "_", "&", "+", "*", "?", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0"}
+func GenerateSpecialChar(enableSymbols bool) string {
+    symbols := []string{"!", "$", "%", "#", "-", "_", "&", "+", "*", "?"}
+    numbers := []string{"1", "2", "3", "4", "5", "6", "7", "8", "9", "0"}
+    var chars []string
+    if(enableSymbols) {
+        chars = append(symbols, numbers...)
+    } else {
+        chars = numbers
+    }
     return chars[RandInt(len(chars))]
 }
 
@@ -38,8 +45,13 @@ func GenerateWord() string {
 func main() {
     desired_length := 16  // Default
 
-    if len(os.Args) > 1 {
-        arg_length, err := strconv.Atoi(os.Args[1])
+    enableSymbols := flag.Bool("symbols", true, "include symbol characters (default true)")
+    flag.Parse()
+
+    fmt.Println(*enableSymbols);
+
+    if flag.NArg() > 0 {
+        arg_length, err := strconv.Atoi(flag.Arg(0))
 
         if err != nil {
             panic(err)
@@ -58,7 +70,7 @@ func main() {
     for len(password) < desired_length {
         next_word = GenerateWord()
         if len(password) + len(next_word) < desired_length + 5 {  // Check if we dont overshoot too much
-            password = password + next_word + GenerateSpecialChar()    
+            password = password + next_word + GenerateSpecialChar(*enableSymbols)    
         }
     }
 
