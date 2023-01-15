@@ -11,6 +11,8 @@ Passworte auf Deutsch
 absolut7kontext
 [ciko@disco schluesseldienst]$ schluesseldienst 20
 Mancher!Gedichte4Partie
+[ciko@disco schluesseldienst]$ schluesseldienst -symbols=false 12 
+Geringen3welt
 ```
 
 Das erzeugte Passwort hat mindestens die gewüsnchte Länge, kann aber auch etwas länger sein.
