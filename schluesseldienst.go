@@ -48,8 +48,6 @@ func main() {
     enableSymbols := flag.Bool("symbols", true, "include symbol characters (default true)")
     flag.Parse()
 
-    fmt.Println(*enableSymbols);
-
     if flag.NArg() > 0 {
         arg_length, err := strconv.Atoi(flag.Arg(0))
 
