@@ -42,16 +42,61 @@ func GenerateWord() string {
     return word
 }
 
-func main() {
-    desired_length := 16  // Default
+type Password struct {
+    Data string
+    NWords int
+}
 
-    enableSymbols := flag.Bool("symbols", true, "include symbol characters (default true)")
+type Criteria struct {
+    DesiredLength int
+    MinWords int
+}
+
+func (p Password) Satisfies(c Criteria) bool {
+    return len(p.Data) == c.DesiredLength && p.NWords >= c.MinWords
+}
+
+func (p Password) StillTooShort(c Criteria) bool {
+    return len(p.Data) < c.DesiredLength
+}
+
+func (p Password) String() string {
+    return p.Data
+}
+
+func Merge(p1 Password, specialChar string, p2 Password) Password {
+    return Password{
+        Data: p1.Data+specialChar+p2.Data,
+        NWords: p1.NWords + p2.NWords}
+}
+
+var wordChannel chan Password
+var specialCharChannel chan string
+var passwordChannel chan Password
+var criteria Criteria
+
+func (p Password) Process() {
+    if p.StillTooShort(criteria) {
+        wordChannel <- p
+    } else {
+        passwordChannel <- p
+    }
+}
+
+func main() {
+    criteria.DesiredLength = 16  // Default
+
+    var enableSymbols bool
+    var maxTries int
+
+    flag.BoolVar(&enableSymbols, "symbols", true, "include symbol characters (default true)")
+    flag.IntVar(&criteria.MinWords, "minwords", 2, "min. number of words (default 2)")
+    flag.IntVar(&criteria.MinWords, "maxwords", 200, "max. number of words (default 200)")
+    flag.IntVar(&maxTries, "maxtries", 10000, "max. tries after which to give up password generation")
 
     flag.Parse()
 
-    fmt.Println(*enableSymbols);
-
-    if flag.NArg() > 0 {
+    if flag.NArg() == 1 {
         arg_length, err := strconv.Atoi(flag.Arg(0))
 
         if err != nil {
@@ -59,31 +104,44 @@ func main() {
         }
 
         if arg_length < 255 && arg_length > 6 {
-            desired_length = arg_length    
+            criteria.DesiredLength = arg_length    
         } else {
             panic("Password length must be between 6 and 255 characters")
         }
-        
+    } else if(flag.NArg() > 1) {
+        panic("Too many arguments.")
     }
 
-    wordChannel := make(chan string)
+    wordChannel = make(chan Password, 100)
+    specialCharChannel = make(chan string, 100)
+    passwordChannel = make(chan Password, 100)
+    go func() {
+        for {
+            Password{Data: GenerateWord(), NWords: 1}.Process()
+        }
+    }()
+    go func() {
+        for {
+            specialCharChannel <- GenerateSpecialChar(enableSymbols)   
+        }
+    }()
+    go func() {
+        for {
+            Merge(<-wordChannel, <-specialCharChannel, <-wordChannel).Process()
+        }
+    }()
 
-    for i := 0; i < 100; i++ {
-        go func() {
-            wordChannel <- GenerateWord()
-        }()
-    }
-    
-    password := ""
-    next_word := ""
-    for len(password) < desired_length {
-        next_word = <-wordChannel
-        if len(password) + len(next_word) < desired_length + 5 {  // Check if we dont overshoot too much
-            password = password + next_word + GenerateSpecialChar(*enableSymbols)    
+    var password *Password
+    for i:=0; i<maxTries; i+=1 {
+        candidate := <-passwordChannel
+        if candidate.Satisfies(criteria) {
+            password = &candidate
+            break
         }
     }
-
-    password = password[:len(password) - 1]
-
-    fmt.Println(password)
+    if password == nil {
+        panic("maxTries exceeded. :(")
+    } else {
+        fmt.Println(password)
+    }
 }
